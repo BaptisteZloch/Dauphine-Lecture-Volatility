@@ -1,0 +1,13 @@
+pandas
+numpy
+statsmodels
+scikit-learn
+matplotlib
+seaborn
+scipy
+ipykernel
+isort
+black
+pyright
+mypy
+pylint
