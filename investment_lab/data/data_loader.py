@@ -40,6 +40,7 @@ class DataLoader(ABC):
         )
         logging.info("Reading between %s %s from %s", start_date, end_date, file_path)
         df = cls._EXTENSION_TO_LOADER[extension](file_path, **(load_kwargs or {}))
+        df["date"] = df["date"].astype("datetime64[ns]")
         df_processed = cls._add_extra_fields(
             cls._process_loaded_data(df, **(process_kwargs or {})),
             **(extra_fields_kwargs or {}),
