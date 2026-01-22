@@ -6,11 +6,13 @@ import pandas as pd
 
 from investment_lab.data.data_loader import DataLoader
 
+ROOT_PATH = r"../"
+
 
 class OptionLoader(DataLoader):
     @classmethod
     def _get_path(cls) -> str:
-        return r"C:\_sharedFS\Lectures\Volatility-Investment-Course\data\optiondb_2016_2023.parquet"
+        return rf"{ROOT_PATH}/data/optiondb_2016_2023.parquet"
 
     @classmethod
     def _get_valid_date_range(cls) -> tuple[datetime, datetime]:
@@ -55,7 +57,7 @@ class OptionLoader(DataLoader):
 class SPYOptionLoader(OptionLoader):
     @classmethod
     def _get_path(cls) -> str:
-        return r"C:\_sharedFS\Lectures\Volatility-Investment-Course\data\spy_2020_2022.parquet"
+        return rf"{ROOT_PATH}/data/spy_2020_2022.parquet"
 
     @classmethod
     def _get_valid_date_range(cls) -> tuple[datetime, datetime]:
@@ -65,7 +67,7 @@ class SPYOptionLoader(OptionLoader):
 class AAPLOptionLoader(OptionLoader):
     @classmethod
     def _get_path(cls) -> str:
-        return r"C:\_sharedFS\Lectures\Volatility-Investment-Course\data\aapl_2016_2023.parquet"
+        return rf"{ROOT_PATH}/data/aapl_2016_2023.parquet"
 
     @classmethod
     def _get_valid_date_range(cls) -> tuple[datetime, datetime]:

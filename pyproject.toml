@@ -1,0 +1,26 @@
+[project]
+name = "investment_lab"
+version = "0.0.1"
+authors = [
+  { name="Baptiste Zloch", email="baptiste.zloch@dauphine.eu" },
+]
+description = "Package for Paris-Dauphine Lectures"
+readme = "README.md"
+requires-python = ">=3.10"
+
+license-files = ["LICEN[CS]E*"]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Operating System :: OS Independent",
+    # You might also add this for clarity:
+    "Intended Audience :: Education",
+]
+
+[project.urls]
+Homepage = "https://github.com/BaptisteZloch/Dauphine-Lecture-Volatility"
+Issues = "https://github.com/BaptisteZloch/Dauphine-Lecture-Volatility/issues"
+
+[tool.setuptools.packages.find]
+include = ["investment_lab*"]
+
+exclude = ["data*", "notebooks*", "tests*"]

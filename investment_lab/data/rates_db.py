@@ -4,11 +4,13 @@ import pandas as pd
 
 from investment_lab.data.data_loader import DataLoader
 
+ROOT_PATH = r"../"
+
 
 class USRatesLoader(DataLoader):
     @classmethod
     def _get_path(cls) -> str:
-        return r"C:\_sharedFS\Lectures\Volatility-Investment-Course\data\par-yield-curve-rates-2020-2023.csv"
+        return rf"{ROOT_PATH}/data/par-yield-curve-rates-2020-2023.csv"
 
     @classmethod
     def _get_valid_date_range(cls) -> tuple[datetime, datetime]:
