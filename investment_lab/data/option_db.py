@@ -17,7 +17,9 @@ class OptionLoader(DataLoader):
         return (datetime(2016, 1, 2), datetime(2023, 12, 30))
 
     @classmethod
-    def _process_loaded_data(cls, df: pd.DataFrame, *, ticker: str | Sequence[str], **kwargs) -> pd.DataFrame:
+    def _process_loaded_data(
+        cls, df: pd.DataFrame, *, ticker: str | Sequence[str], **kwargs
+    ) -> pd.DataFrame:
         if isinstance(ticker, str):
             ticker = [ticker]
         else:
@@ -68,3 +70,12 @@ class AAPLOptionLoader(OptionLoader):
     @classmethod
     def _get_valid_date_range(cls) -> tuple[datetime, datetime]:
         return (datetime(2016, 1, 2), datetime(2023, 12, 31))
+
+
+def extract_spot_from_options(df_options: pd.DataFrame) -> pd.DataFrame:
+    return (
+        df_options[["date", "spot"]]
+        .drop_duplicates(subset=["date"])
+        .sort_values("date")
+        .reset_index(drop=True)
+    )

@@ -16,26 +16,53 @@ def compute_forward(df_options: pd.DataFrame, df_rates: pd.DataFrame) -> pd.Data
         Same as input with 2 additional columns: 'risk_free_rate' and 'forward'.
     """
     missing_cols = set(TENOR_TO_PERIOD.keys()).difference(df_rates.columns)
-    check_is_true(len(missing_cols) == 0, f"df_rates is missing columns: {missing_cols}")
-    missing_options_cols = {"date", "spot", "day_to_expiration", "option_id"}.difference(df_options.columns)
-    check_is_true(len(missing_options_cols) == 0, f"df_options is missing columns: {missing_options_cols}")
+    check_is_true(
+        len(missing_cols) == 0, f"df_rates is missing columns: {missing_cols}"
+    )
+    missing_options_cols = {
+        "date",
+        "spot",
+        "day_to_expiration",
+        "option_id",
+    }.difference(df_options.columns)
+    check_is_true(
+        len(missing_options_cols) == 0,
+        f"df_options is missing columns: {missing_options_cols}",
+    )
 
     def _compute_values(group: pd.DataFrame) -> pd.DataFrame:
         dte = group["day_to_expiration"].unique()[0] / DAYS_PER_YEAR
         tenors = group[TENOR_TO_PERIOD.keys()].columns.map(TENOR_TO_PERIOD).to_numpy()
-        rate_curve = group[TENOR_TO_PERIOD.keys()].drop_duplicates().to_numpy().reshape(-1)
+        rate_curve = (
+            group[TENOR_TO_PERIOD.keys()].drop_duplicates().to_numpy().reshape(-1)
+        )
         interpolated_rate = interpolate_rates(dte, tenors=tenors, rate_curve=rate_curve)
         group["risk_free_rate"] = interpolated_rate
         return group
 
     df = df_options.merge(df_rates, on="date", how="left")
-    df = df.groupby(["date", "expiration"]).apply(_compute_values).reset_index(drop=True)
-    df["forward"] = df["spot"] * np.exp(df["risk_free_rate"] * df["day_to_expiration"] / DAYS_PER_YEAR)
-    df_forward = df.groupby(["ticker", "date", "expiration"])[["forward"]].first().ffill().reset_index()
-    return df.drop(columns=list(TENOR_TO_PERIOD.keys()) + ["forward"]).merge(df_forward, how="left", on=["ticker", "date", "expiration"])
+    df = (
+        df.groupby(["date", "expiration"]).apply(_compute_values).reset_index(drop=True)
+    )
+    df["forward"] = df["spot"] * np.exp(
+        df["risk_free_rate"] * df["day_to_expiration"] / DAYS_PER_YEAR
+    )
+    df_forward = (
+        df.groupby(["ticker", "date", "expiration"])[["forward"]]
+        .first()
+        .ffill()
+        .reset_index()
+    )
+    return df.drop(columns=list(TENOR_TO_PERIOD.keys()) + ["forward"]).merge(
+        df_forward, how="left", on=["ticker", "date", "expiration"]
+    )
 
 
-def interpolate_rates(eval_tenor: float, tenors: pd.Series | np.ndarray, rate_curve: pd.Series | np.ndarray) -> float:
+def interpolate_rates(
+    eval_tenor: float,
+    tenors: pd.Series | np.ndarray,
+    rate_curve: pd.Series | np.ndarray,
+) -> float:
     """Interpolate rates linearly.
 
     Args:
@@ -47,7 +74,10 @@ def interpolate_rates(eval_tenor: float, tenors: pd.Series | np.ndarray, rate_cu
     """
     tenors = np.asarray(tenors)
     rate_curve = np.asarray(rate_curve)
-    check_is_true(len(tenors) == len(rate_curve), "Tenors and rate curve must have the same length.")
+    check_is_true(
+        len(tenors) == len(rate_curve),
+        "Tenors and rate curve must have the same length.",
+    )
     if eval_tenor <= tenors.min():
         return rate_curve[tenors.argmin()]
     if eval_tenor >= tenors.max():
