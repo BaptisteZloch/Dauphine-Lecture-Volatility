@@ -11,3 +11,6 @@ black
 pyright
 mypy
 pylint
+pyarrow
+tqdm
+fastparquet
