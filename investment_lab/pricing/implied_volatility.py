@@ -4,8 +4,7 @@ import numpy as np
 import pandas as pd
 from tqdm import tqdm
 
-from investment_lab.pricing.black_scholes import (black_scholes_price,
-                                                  vega_black_scholes)
+from investment_lab.pricing.black_scholes import black_scholes_price, vega_black_scholes
 
 
 def implied_volatility_vectorized(
@@ -26,8 +25,15 @@ def implied_volatility_vectorized(
     # Initialize sigma with the initial guess, matching the index of the input
     sigma = pd.Series(initial_guess, index=market_price.index, dtype=float)
     logging.info("Calculate implied volatility using Newton-Raphson method")
-    logging.info("Parameters: initial_guess=%s, tol=%s, max_iteration=%s", initial_guess, tol, max_iterations)
-    for i in tqdm(range(max_iterations), desc="Calculating Implied Volatility", leave=True):
+    logging.info(
+        "Parameters: initial_guess=%s, tol=%s, max_iteration=%s",
+        initial_guess,
+        tol,
+        max_iterations,
+    )
+    for i in tqdm(
+        range(max_iterations), desc="Calculating Implied Volatility", leave=True
+    ):
         # Calculate current prices and vega based on current sigma estimate
         current_price = black_scholes_price(S, K, T, r, sigma, option_type)
         vega = vega_black_scholes(S, K, T, r, sigma)
