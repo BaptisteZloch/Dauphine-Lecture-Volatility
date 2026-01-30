@@ -37,7 +37,7 @@ class StrategyBacktester:
         "cashflow",
     ]
 
-    def __init__(self, df_positions) -> None:
+    def __init__(self, df_positions: pd.DataFrame) -> None:
         missing_cols = set(self._BACKTEST_COLS).difference(df_positions.columns)
         check_is_true(
             len(missing_cols) == 0,
@@ -87,43 +87,21 @@ class StrategyBacktester:
         return self._df_drifted_positions
 
     def compute_backtest(self) -> Self:
-        df_positions = (
-            self._df_positions[self._BACKTEST_COLS]
-            .sort_values(["option_id", "date"])
-            .copy()
-        )
+        df_positions = self._df_positions[self._BACKTEST_COLS].sort_values(["option_id", "date"]).copy()
         logging.info("Computing period to period difference.")
         df_positions["dv"] = df_positions.groupby(["option_id"])["mid"].diff().fillna(0)
-        df_positions["dr"] = (
-            df_positions.groupby(["option_id"])["risk_free_rate"].diff().fillna(0)
-        )
-        df_positions["dsigma"] = (
-            df_positions.groupby(["option_id"])["implied_volatility"].diff().fillna(0)
-        )
-        df_positions["dS"] = (
-            df_positions.groupby(["option_id"])["spot"].diff().fillna(0)
-        )
+        df_positions["dr"] = df_positions.groupby(["option_id"])["risk_free_rate"].diff().fillna(0)
+        df_positions["dsigma"] = df_positions.groupby(["option_id"])["implied_volatility"].diff().fillna(0)
+        df_positions["dS"] = df_positions.groupby(["option_id"])["spot"].diff().fillna(0)
         df_positions["dt"] = 1
 
-        df_positions["prev_theta"] = (
-            df_positions.groupby("option_id")["theta"].shift(1).fillna(method="bfill")
-        )
-        df_positions["prev_gamma"] = (
-            df_positions.groupby("option_id")["gamma"].shift(1).fillna(method="bfill")
-        )
-        df_positions["prev_delta"] = (
-            df_positions.groupby("option_id")["delta"].shift(1).fillna(method="bfill")
-        )
-        df_positions["prev_vega"] = (
-            df_positions.groupby("option_id")["vega"].shift(1).fillna(method="bfill")
-        )
-        df_positions["prev_rho"] = (
-            df_positions.groupby("option_id")["rho"].shift(1).fillna(method="bfill")
-        )
+        df_positions["prev_theta"] = df_positions.groupby("option_id")["theta"].shift(1).fillna(method="bfill")
+        df_positions["prev_gamma"] = df_positions.groupby("option_id")["gamma"].shift(1).fillna(method="bfill")
+        df_positions["prev_delta"] = df_positions.groupby("option_id")["delta"].shift(1).fillna(method="bfill")
+        df_positions["prev_vega"] = df_positions.groupby("option_id")["vega"].shift(1).fillna(method="bfill")
+        df_positions["prev_rho"] = df_positions.groupby("option_id")["rho"].shift(1).fillna(method="bfill")
 
-        df_positions["obs_date"] = df_positions["date"].apply(
-            lambda x: x - pd.Timedelta(days=1)
-        )
+        df_positions["obs_date"] = df_positions["date"].apply(lambda x: x - pd.Timedelta(days=1))
         df_pnl = pd.DataFrame(
             [[0, 0, 0, 0, 0, 0, 0, 0, 0]],
             columns=[
@@ -151,43 +129,22 @@ class StrategyBacktester:
         drifted_positions = []
         for d in tqdm(df_positions["date"].sort_values().unique()):
             df_day = df_positions[df_positions["date"] == d].copy()
-            df_day = df_day.merge(
-                df_nav, left_on="obs_date", right_index=True, how="left"
-            )
+            df_day = df_day.merge(df_nav, left_on="obs_date", right_index=True, how="left")
             df_day["scaled_weight"] = df_day["weight"] * df_day["NAV"]
 
             df_day["pnl"] = df_day["scaled_weight"] * df_day["dv"]
-            df_day["gamma_pnl"] = (
-                0.5 * df_day["scaled_weight"] * df_day["dS"] ** 2 * df_day["prev_gamma"]
-            )
-            df_day["delta_pnl"] = (
-                df_day["scaled_weight"] * df_day["dS"] * df_day["prev_delta"]
-            )
-            df_day["theta_pnl"] = (
-                df_day["scaled_weight"] * df_day["dt"] * df_day["prev_theta"]
-            )
-            df_day["vega_pnl"] = (
-                df_day["scaled_weight"] * df_day["dsigma"] * df_day["prev_vega"]
-            )
-            df_day["rho_pnl"] = (
-                df_day["scaled_weight"] * df_day["dr"] * df_day["prev_rho"]
-            )
+            df_day["gamma_pnl"] = 0.5 * df_day["scaled_weight"] * df_day["dS"] ** 2 * df_day["prev_gamma"]
+            df_day["delta_pnl"] = df_day["scaled_weight"] * df_day["dS"] * df_day["prev_delta"]
+            df_day["theta_pnl"] = df_day["scaled_weight"] * df_day["dt"] * df_day["prev_theta"]
+            df_day["vega_pnl"] = df_day["scaled_weight"] * df_day["dsigma"] * df_day["prev_vega"]
+            df_day["rho_pnl"] = df_day["scaled_weight"] * df_day["dr"] * df_day["prev_rho"]
             df_day["residual_pnl"] = (
-                df_day["pnl"]
-                - df_day["delta_pnl"]
-                - df_day["gamma_pnl"]
-                - df_day["theta_pnl"]
-                - df_day["vega_pnl"]
-                - df_day["rho_pnl"]
+                df_day["pnl"] - df_day["delta_pnl"] - df_day["gamma_pnl"] - df_day["theta_pnl"] - df_day["vega_pnl"] - df_day["rho_pnl"]
             )
             df_day["leverage"] = df_day["scaled_weight"] * df_day["spot"]
             df_day["cashflow"] = 0
-            df_day.loc[df_day["entry_date"] == df_day["date"], "cashflow"] = (
-                -df_day["scaled_weight"] * df_day["mid"]
-            )
-            df_day.loc[df_day["expiration"] == df_day["date"], "cashflow"] = (
-                df_day["scaled_weight"] * df_day["mid"]
-            )
+            df_day.loc[df_day["entry_date"] == df_day["date"], "cashflow"] = -df_day["scaled_weight"] * df_day["mid"]
+            df_day.loc[df_day["expiration"] == df_day["date"], "cashflow"] = df_day["scaled_weight"] * df_day["mid"]
 
             df_pnl = pd.concat([df_pnl, df_day.groupby("date")[self._PNL_COLS].sum()])
             if d not in df_nav.index:
@@ -196,6 +153,7 @@ class StrategyBacktester:
                 latest_nav = df_nav.loc[d]
             df_nav.loc[d] = latest_nav + df_pnl.loc[d, "pnl"]
             drifted_positions.append(df_day)
+
         logging.info("Backtest computation completed.")
         self._is_backtested = True
         self._df_pnl = df_pnl.drop(columns=["leverage", "cashflow"]).copy()

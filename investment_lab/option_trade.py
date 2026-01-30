@@ -78,12 +78,12 @@ class OptionTradeABC(ABC):
             leg_name = leg.pop("leg_name", "")
             weight = leg.pop("weight", np.nan)
             rebal_week_day = leg.pop("rebal_week_day", 1)
-            check_is_true(0 <= rebal_week_day <= 4, "Error, provide a rebalance week day among {0,1,2,3,4}")
+            check_is_true(np.all([0 <= rebal <= 4 for rebal in rebal_week_day]), "Error, provide a rebalance week day among {0,1,2,3,4}")
             logging.info("Selecting options for leg: %s using the rules:\n%s", leg_name, leg)
             selected_option_df = select_options(df_options, **leg)
             selected_option_df["leg_name"] = leg_name
             selected_option_df["weight"] = (weight / selected_option_df["spot"].where(selected_option_df["spot"] != 0, np.nan)).ffill()
-            selected_option_df = selected_option_df[selected_option_df["date"].dt.day_of_week == rebal_week_day]
+            selected_option_df = selected_option_df[selected_option_df["date"].dt.day_of_week.isin(rebal_week_day)]
             df_list.append(selected_option_df.rename(columns={"date": "entry_date"}))
 
         df = pd.concat(df_list)

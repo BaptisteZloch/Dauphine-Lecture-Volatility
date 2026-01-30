@@ -8,4 +8,4 @@ class OptionLegSpec(TypedDict, total=False):
     call_or_put: Literal["C", "P"]
     weight: float
     leg_name: str
-    rebal_week_day: int
+    rebal_week_day: list[int]
