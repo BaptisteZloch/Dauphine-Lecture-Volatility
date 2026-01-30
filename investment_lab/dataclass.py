@@ -2,7 +2,6 @@ from typing import Literal, TypedDict
 
 
 class OptionLegSpec(TypedDict, total=False):
-    ticker: str
     day_to_expiry_target: int
     strike_target: float
     strike_col: Literal["strike", "moneyness", "delta"]

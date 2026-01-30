@@ -23,8 +23,7 @@ class SABRSmoother(VolSmoother):
         forward: float | pd.Series | np.ndarray,
         strike: pd.Series | np.ndarray,
         time_to_maturities: pd.Series | np.ndarray | float,
-        market_implied_vols: pd.Series | np.ndarray,
-        **kwargs,
+        market_implied_vols: pd.Series | np.ndarray**kwargs,
     ) -> Self:
         """
         Calibrate SABR parameters to market implied volatilities.

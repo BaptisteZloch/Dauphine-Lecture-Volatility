@@ -1,8 +1,7 @@
 from investment_lab.dataclass import OptionLegSpec
 
-CALENDAR_SPREAD_1W_1M_ATM_C_SPY: list[OptionLegSpec] = [
+CALENDAR_SPREAD_1W_1M_ATM_C: list[OptionLegSpec] = [
     {
-        "ticker": "SPY",
         "day_to_expiry_target": 7,
         "strike_target": 1,
         "strike_col": "moneyness",
@@ -12,7 +11,6 @@ CALENDAR_SPREAD_1W_1M_ATM_C_SPY: list[OptionLegSpec] = [
         "rebal_week_day": 1,
     },
     {
-        "ticker": "SPY",
         "day_to_expiry_target": 7 * 4,
         "strike_target": 1,
         "strike_col": "moneyness",
@@ -22,9 +20,8 @@ CALENDAR_SPREAD_1W_1M_ATM_C_SPY: list[OptionLegSpec] = [
         "rebal_week_day": 1,
     },
 ]
-CALENDAR_SPREAD_1M_6M_ATM_C_SPY: list[OptionLegSpec] = [
+CALENDAR_SPREAD_1M_6M_ATM_C: list[OptionLegSpec] = [
     {
-        "ticker": "SPY",
         "day_to_expiry_target": 7 * 4,
         "strike_target": 1,
         "strike_col": "moneyness",
@@ -34,7 +31,6 @@ CALENDAR_SPREAD_1M_6M_ATM_C_SPY: list[OptionLegSpec] = [
         "rebal_week_day": 1,
     },
     {
-        "ticker": "SPY",
         "day_to_expiry_target": 7 * 4 * 6,
         "strike_target": 1,
         "strike_col": "moneyness",
@@ -45,9 +41,8 @@ CALENDAR_SPREAD_1M_6M_ATM_C_SPY: list[OptionLegSpec] = [
     },
 ]
 
-CALENDAR_SPREAD_1W_1M_ATM_P_SPY: list[OptionLegSpec] = [
+CALENDAR_SPREAD_1W_1M_ATM_P: list[OptionLegSpec] = [
     {
-        "ticker": "SPY",
         "day_to_expiry_target": 7,
         "strike_target": 1,
         "strike_col": "moneyness",
@@ -57,7 +52,6 @@ CALENDAR_SPREAD_1W_1M_ATM_P_SPY: list[OptionLegSpec] = [
         "rebal_week_day": 1,
     },
     {
-        "ticker": "SPY",
         "day_to_expiry_target": 7 * 4,
         "strike_target": 1,
         "strike_col": "moneyness",
@@ -69,9 +63,8 @@ CALENDAR_SPREAD_1W_1M_ATM_P_SPY: list[OptionLegSpec] = [
 ]
 
 
-REVERSE_CALENDAR_SPREAD_1W_1M_ATM_C_SPY: list[OptionLegSpec] = [
+REVERSE_CALENDAR_SPREAD_1W_1M_ATM_C: list[OptionLegSpec] = [
     {
-        "ticker": "SPY",
         "day_to_expiry_target": 7,
         "strike_target": 1,
         "strike_col": "moneyness",
@@ -81,7 +74,6 @@ REVERSE_CALENDAR_SPREAD_1W_1M_ATM_C_SPY: list[OptionLegSpec] = [
         "rebal_week_day": 1,
     },
     {
-        "ticker": "SPY",
         "day_to_expiry_target": 7 * 4,
         "strike_target": 1,
         "strike_col": "moneyness",
@@ -91,9 +83,8 @@ REVERSE_CALENDAR_SPREAD_1W_1M_ATM_C_SPY: list[OptionLegSpec] = [
         "rebal_week_day": 1,
     },
 ]
-REVERSE_CALENDAR_SPREAD_1M_6M_ATM_C_SPY: list[OptionLegSpec] = [
+REVERSE_CALENDAR_SPREAD_1M_6M_ATM_C: list[OptionLegSpec] = [
     {
-        "ticker": "SPY",
         "day_to_expiry_target": 7 * 4,
         "strike_target": 1 / 4,
         "strike_col": "moneyness",
@@ -103,7 +94,6 @@ REVERSE_CALENDAR_SPREAD_1M_6M_ATM_C_SPY: list[OptionLegSpec] = [
         "rebal_week_day": 1,
     },
     {
-        "ticker": "SPY",
         "day_to_expiry_target": 7 * 4 * 6,
         "strike_target": 1,
         "strike_col": "moneyness",
@@ -114,9 +104,8 @@ REVERSE_CALENDAR_SPREAD_1M_6M_ATM_C_SPY: list[OptionLegSpec] = [
     },
 ]
 
-REVERSE_CALENDAR_SPREAD_1W_1M_ATM_P_SPY: list[OptionLegSpec] = [
+REVERSE_CALENDAR_SPREAD_1W_1M_ATM_P: list[OptionLegSpec] = [
     {
-        "ticker": "SPY",
         "day_to_expiry_target": 7,
         "strike_target": 1,
         "strike_col": "moneyness",
@@ -126,7 +115,6 @@ REVERSE_CALENDAR_SPREAD_1W_1M_ATM_P_SPY: list[OptionLegSpec] = [
         "rebal_week_day": 1,
     },
     {
-        "ticker": "SPY",
         "day_to_expiry_target": 7 * 4,
         "strike_target": 1,
         "strike_col": "moneyness",
@@ -138,9 +126,8 @@ REVERSE_CALENDAR_SPREAD_1W_1M_ATM_P_SPY: list[OptionLegSpec] = [
 ]
 
 
-SHORT_1W_STRADDLE_SPY: list[OptionLegSpec] = [
+SHORT_1W_STRADDLE: list[OptionLegSpec] = [
     {
-        "ticker": "SPY",
         "day_to_expiry_target": 7,
         "strike_target": -0.5,
         "strike_col": "delta",
@@ -150,7 +137,6 @@ SHORT_1W_STRADDLE_SPY: list[OptionLegSpec] = [
         "rebal_week_day": 1,
     },
     {
-        "ticker": "SPY",
         "day_to_expiry_target": 7,
         "strike_target": 0.5,
         "strike_col": "delta",
@@ -162,9 +148,8 @@ SHORT_1W_STRADDLE_SPY: list[OptionLegSpec] = [
 ]
 
 
-SHORT_1M_STRADDLE_SPY: list[OptionLegSpec] = [
+SHORT_1M_STRADDLE: list[OptionLegSpec] = [
     {
-        "ticker": "SPY",
         "day_to_expiry_target": 7 * 4,
         "strike_target": -0.5,
         "strike_col": "delta",
@@ -174,7 +159,6 @@ SHORT_1M_STRADDLE_SPY: list[OptionLegSpec] = [
         "rebal_week_day": 1,
     },
     {
-        "ticker": "SPY",
         "day_to_expiry_target": 7 * 4,
         "strike_target": 0.5,
         "strike_col": "delta",
@@ -185,9 +169,8 @@ SHORT_1M_STRADDLE_SPY: list[OptionLegSpec] = [
     },
 ]
 
-SHORT_1W_STRANGLE_95_105_SPY: list[OptionLegSpec] = [
+SHORT_1W_STRANGLE_95_105: list[OptionLegSpec] = [
     {
-        "ticker": "SPY",
         "day_to_expiry_target": 7,
         "strike_target": 0.95,
         "strike_col": "moneyness",
@@ -197,7 +180,6 @@ SHORT_1W_STRANGLE_95_105_SPY: list[OptionLegSpec] = [
         "rebal_week_day": 1,
     },
     {
-        "ticker": "SPY",
         "day_to_expiry_target": 7,
         "strike_target": 1.05,
         "strike_col": "moneyness",
@@ -208,9 +190,8 @@ SHORT_1W_STRANGLE_95_105_SPY: list[OptionLegSpec] = [
     },
 ]
 
-SHORT_1W_STRANGLE_20D_SPY: list[OptionLegSpec] = [
+SHORT_1W_STRANGLE_20D: list[OptionLegSpec] = [
     {
-        "ticker": "SPY",
         "day_to_expiry_target": 7,
         "strike_target": -0.2,
         "strike_col": "delta",
@@ -220,7 +201,6 @@ SHORT_1W_STRANGLE_20D_SPY: list[OptionLegSpec] = [
         "rebal_week_day": 1,
     },
     {
-        "ticker": "SPY",
         "day_to_expiry_target": 7,
         "strike_target": 0.2,
         "strike_col": "delta",
@@ -231,9 +211,8 @@ SHORT_1W_STRANGLE_20D_SPY: list[OptionLegSpec] = [
     },
 ]
 
-RISK_REVERSAL_1W_15D_SPY: list[OptionLegSpec] = [
+RISK_REVERSAL_1W_15D: list[OptionLegSpec] = [
     {
-        "ticker": "SPY",
         "day_to_expiry_target": 7,
         "strike_target": -0.15,
         "strike_col": "delta",
@@ -243,7 +222,6 @@ RISK_REVERSAL_1W_15D_SPY: list[OptionLegSpec] = [
         "rebal_week_day": 1,
     },
     {
-        "ticker": "SPY",
         "day_to_expiry_target": 7,
         "strike_target": 0.15,
         "strike_col": "delta",
@@ -254,9 +232,8 @@ RISK_REVERSAL_1W_15D_SPY: list[OptionLegSpec] = [
     },
 ]
 
-RISK_REVERSAL_1M_15D_SPY: list[OptionLegSpec] = [
+RISK_REVERSAL_1M_15D: list[OptionLegSpec] = [
     {
-        "ticker": "SPY",
         "day_to_expiry_target": 7 * 4,
         "strike_target": -0.15,
         "strike_col": "delta",
@@ -266,7 +243,6 @@ RISK_REVERSAL_1M_15D_SPY: list[OptionLegSpec] = [
         "rebal_week_day": 1,
     },
     {
-        "ticker": "SPY",
         "day_to_expiry_target": 7 * 4,
         "strike_target": 0.25,
         "strike_col": "delta",
@@ -278,9 +254,8 @@ RISK_REVERSAL_1M_15D_SPY: list[OptionLegSpec] = [
 ]
 
 
-INVERSE_RISK_REVERSAL_1W_15D_SPY: list[OptionLegSpec] = [
+INVERSE_RISK_REVERSAL_1W_15D: list[OptionLegSpec] = [
     {
-        "ticker": "SPY",
         "day_to_expiry_target": 7,
         "strike_target": -0.15,
         "strike_col": "delta",
@@ -290,7 +265,6 @@ INVERSE_RISK_REVERSAL_1W_15D_SPY: list[OptionLegSpec] = [
         "rebal_week_day": 1,
     },
     {
-        "ticker": "SPY",
         "day_to_expiry_target": 7,
         "strike_target": 0.15,
         "strike_col": "delta",
@@ -301,9 +275,8 @@ INVERSE_RISK_REVERSAL_1W_15D_SPY: list[OptionLegSpec] = [
     },
 ]
 
-INVERSE_RISK_REVERSAL_1M_15D_SPY: list[OptionLegSpec] = [
+INVERSE_RISK_REVERSAL_1M_15D: list[OptionLegSpec] = [
     {
-        "ticker": "SPY",
         "day_to_expiry_target": 7 * 4,
         "strike_target": -0.15,
         "strike_col": "delta",
@@ -313,7 +286,6 @@ INVERSE_RISK_REVERSAL_1M_15D_SPY: list[OptionLegSpec] = [
         "rebal_week_day": 1,
     },
     {
-        "ticker": "SPY",
         "day_to_expiry_target": 7 * 4,
         "strike_target": 0.15,
         "strike_col": "delta",
@@ -325,9 +297,8 @@ INVERSE_RISK_REVERSAL_1M_15D_SPY: list[OptionLegSpec] = [
 ]
 
 
-LONG_CALL_SPREAD_1M_100_105_SPY: list[OptionLegSpec] = [
+LONG_CALL_SPREAD_1M_100_105: list[OptionLegSpec] = [
     {
-        "ticker": "SPY",
         "day_to_expiry_target": 7 * 4,
         "strike_target": 1.0,
         "strike_col": "moneyness",
@@ -337,7 +308,6 @@ LONG_CALL_SPREAD_1M_100_105_SPY: list[OptionLegSpec] = [
         "rebal_week_day": 1,
     },
     {
-        "ticker": "SPY",
         "day_to_expiry_target": 7 * 4,
         "strike_target": 1.05,
         "strike_col": "moneyness",
@@ -349,9 +319,8 @@ LONG_CALL_SPREAD_1M_100_105_SPY: list[OptionLegSpec] = [
 ]
 
 
-LONG_CALL_SPREAD_1W_100_105_SPY: list[OptionLegSpec] = [
+LONG_CALL_SPREAD_1W_100_105: list[OptionLegSpec] = [
     {
-        "ticker": "SPY",
         "day_to_expiry_target": 7,
         "strike_target": 1.0,
         "strike_col": "moneyness",
@@ -361,7 +330,6 @@ LONG_CALL_SPREAD_1W_100_105_SPY: list[OptionLegSpec] = [
         "rebal_week_day": 1,
     },
     {
-        "ticker": "SPY",
         "day_to_expiry_target": 7,
         "strike_target": 1.05,
         "strike_col": "moneyness",
@@ -372,9 +340,8 @@ LONG_CALL_SPREAD_1W_100_105_SPY: list[OptionLegSpec] = [
     },
 ]
 
-SHORT_PUT_SPREAD_1W_98_100_SPY: list[OptionLegSpec] = [
+SHORT_PUT_SPREAD_1W_98_100: list[OptionLegSpec] = [
     {
-        "ticker": "SPY",
         "day_to_expiry_target": 7,
         "strike_target": 1.0,
         "strike_col": "moneyness",
@@ -384,7 +351,6 @@ SHORT_PUT_SPREAD_1W_98_100_SPY: list[OptionLegSpec] = [
         "rebal_week_day": 1,
     },
     {
-        "ticker": "SPY",
         "day_to_expiry_target": 7,
         "strike_target": 0.98,
         "strike_col": "moneyness",
@@ -395,9 +361,8 @@ SHORT_PUT_SPREAD_1W_98_100_SPY: list[OptionLegSpec] = [
     },
 ]
 
-SHORT_PUT_SPREAD_1M_95_100_SPY: list[OptionLegSpec] = [
+SHORT_PUT_SPREAD_1M_95_100: list[OptionLegSpec] = [
     {
-        "ticker": "SPY",
         "day_to_expiry_target": 7 * 4,
         "strike_target": 1.0,
         "strike_col": "moneyness",
@@ -407,7 +372,6 @@ SHORT_PUT_SPREAD_1M_95_100_SPY: list[OptionLegSpec] = [
         "rebal_week_day": 1,
     },
     {
-        "ticker": "SPY",
         "day_to_expiry_target": 7 * 4,
         "strike_target": 0.95,
         "strike_col": "moneyness",
@@ -418,9 +382,8 @@ SHORT_PUT_SPREAD_1M_95_100_SPY: list[OptionLegSpec] = [
     },
 ]
 
-SHORT_PUT_SPREAD_1W_20D_40D_SPY: list[OptionLegSpec] = [
+SHORT_PUT_SPREAD_1W_20D_40D: list[OptionLegSpec] = [
     {
-        "ticker": "SPY",
         "day_to_expiry_target": 7,
         "strike_target": -0.3,
         "strike_col": "delta",
@@ -430,7 +393,6 @@ SHORT_PUT_SPREAD_1W_20D_40D_SPY: list[OptionLegSpec] = [
         "rebal_week_day": 1,
     },
     {
-        "ticker": "SPY",
         "day_to_expiry_target": 7,
         "strike_target": -0.1,
         "strike_col": "delta",
