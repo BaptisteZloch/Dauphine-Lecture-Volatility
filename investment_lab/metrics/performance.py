@@ -75,3 +75,19 @@ def max_drawdown(returns: pd.Series) -> float:
         maximum drawdown of the returns series.
     """
     return drawdown(returns).min()
+
+
+def calmar_ratio(returns: pd.Series) -> float:
+    """Compute the Calmar ratio from a daily returns series.
+
+    Parameters:
+        returns: Series of daily returns.
+
+    Returns:
+        Calmar ratio of the returns series.
+    """
+    annualized_return = realized_returns(returns)
+    maximum_drawdown = -max_drawdown(returns)
+    if maximum_drawdown == 0:
+        return float("inf")
+    return annualized_return / maximum_drawdown
