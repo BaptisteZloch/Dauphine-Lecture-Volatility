@@ -2,6 +2,7 @@ import logging
 from abc import ABC, abstractmethod
 from copy import deepcopy
 from datetime import datetime
+from typing import Optional
 
 import numpy as np
 import pandas as pd
@@ -15,7 +16,17 @@ from investment_lab.util import check_is_true
 
 
 class OptionTradeABC(ABC):
-    _REQUIRED_COLUMNS = ["date", "option_id", "expiration", "delta", "strike", "moneyness", "call_put", "spot", "ticker"]
+    _REQUIRED_COLUMNS = [
+        "date",
+        "option_id",
+        "expiration",
+        "delta",
+        "strike",
+        "moneyness",
+        "call_put",
+        "spot",
+        "ticker",
+    ]
 
     @classmethod
     def generate_trades(
@@ -25,24 +36,66 @@ class OptionTradeABC(ABC):
         tickers: list[str] | str,
         legs: list[OptionLegSpec],
         cost_neutral: bool = False,
+        hedging_args: Optional[dict] = None,
     ) -> pd.DataFrame:
-        df_options = cls._load_option_data(start_date, end_date, process_kwargs={"ticker": tickers})
-        df_trades = cls._select_options(df_options, legs, cost_neutral=cost_neutral).drop_duplicates(subset=["entry_date", "leg_name", "ticker"])
+        df_trades_daily = cls._generate_trades(
+            start_date, end_date, tickers=tickers, legs=legs, cost_neutral=cost_neutral
+        )
+        hedging_args = hedging_args or {}
+        return cls._hedge_trades(df_trades_daily, **hedging_args)
+
+    @classmethod
+    def _generate_trades(
+        cls,
+        start_date: datetime,
+        end_date: datetime,
+        tickers: list[str] | str,
+        legs: list[OptionLegSpec],
+        cost_neutral: bool = False,
+    ) -> pd.DataFrame:
+        """Generate trade for main option selection, excluding delta hedging or gamma hedging/overlay.
+
+        Args:
+            start_date: _description_
+            end_date: _description_
+            tickers: _description_
+            legs: _description_
+            cost_neutral: _description_. Defaults to False.
+
+        Returns:
+            pd.DataFrame: _description_
+        """
+        df_options = cls._load_option_data(
+            start_date, end_date, process_kwargs={"ticker": tickers}
+        )
+        df_trades = cls._select_options(
+            df_options, legs, cost_neutral=cost_neutral
+        ).drop_duplicates(subset=["entry_date", "leg_name", "ticker"])
         df_trades_daily = cls._convert_trades_to_timeseries(df_trades)
         # merge back to get option data for the df_trades
-        df_trades_daily = df_trades_daily.merge(df_options, on=["date", "option_id", "ticker"], how="left")
-        df_trades_daily = df_trades_daily[df_trades_daily["date"].between(start_date, end_date)]
-        df_trades_daily = df_trades_daily.drop_duplicates(subset=["date", "leg_name", "option_id"])
+        df_trades_daily = df_trades_daily.merge(
+            df_options, on=["date", "option_id", "ticker"], how="left"
+        )
+        df_trades_daily = df_trades_daily[
+            df_trades_daily["date"].between(start_date, end_date)
+        ]
+        df_trades_daily = df_trades_daily.drop_duplicates(
+            subset=["date", "leg_name", "option_id"]
+        )
         df_trades_daily = cls._ffill_option_data(df_trades_daily)
         if "risk_free_rate" not in df_trades_daily.columns:
             start, end = df_trades_daily["date"].min(), df_trades_daily["date"].max()
             df_rates = USRatesLoader.load_data(start, end)
-            df_trades_daily = compute_forward(df_options=df_trades_daily, df_rates=df_rates)
+            df_trades_daily = compute_forward(
+                df_options=df_trades_daily, df_rates=df_rates
+            )
 
-        return cls._delta_hedge(df_trades_daily)
+        return df_trades_daily
 
     @classmethod
-    def _load_option_data(cls, start_date: datetime, end_date: datetime, **kwargs) -> pd.DataFrame:
+    def _load_option_data(
+        cls, start_date: datetime, end_date: datetime, **kwargs
+    ) -> pd.DataFrame:
         """Concrete function that should be overridden in the child class. THis one wraps
             - `_load_data` to load the data from the source
             - `_preprocess_option_data` to preprocess the data after loading
@@ -58,12 +111,17 @@ class OptionTradeABC(ABC):
         logging.info("Loading option data from %s to %s", start_date, end_date)
         option_df = cls.load_data(start_date, end_date, **kwargs)
         missing_cols = set(cls._REQUIRED_COLUMNS).difference(option_df.columns)
-        check_is_true(len(missing_cols) == 0, f"Option data is missing required columns: {missing_cols}")
+        check_is_true(
+            len(missing_cols) == 0,
+            f"Option data is missing required columns: {missing_cols}",
+        )
         return cls._preprocess_option_data(option_df)
 
     @classmethod
     @abstractmethod
-    def load_data(cls, start_date: datetime, end_date: datetime, **kwargs) -> pd.DataFrame:
+    def load_data(
+        cls, start_date: datetime, end_date: datetime, **kwargs
+    ) -> pd.DataFrame:
         raise NotImplementedError
 
     @classmethod
@@ -83,19 +141,33 @@ class OptionTradeABC(ABC):
             leg_name = leg.pop("leg_name", "")
             weight = leg.pop("weight", np.nan)
             rebal_week_day = leg.pop("rebal_week_day", 1)
-            check_is_true(np.all([0 <= rebal <= 4 for rebal in rebal_week_day]), "Error, provide a rebalance week day among {0,1,2,3,4}")
-            logging.info("Selecting options for leg: %s using the rules:\n%s", leg_name, leg)
+            check_is_true(
+                np.all([0 <= rebal <= 4 for rebal in rebal_week_day]),
+                "Error, provide a rebalance week day among {0,1,2,3,4}",
+            )
+            logging.info(
+                "Selecting options for leg: %s using the rules:\n%s", leg_name, leg
+            )
             selected_option_df = select_options(df_options, **leg)
             selected_option_df["leg_name"] = leg_name
-            selected_option_df["weight"] = (weight / selected_option_df["spot"].where(selected_option_df["spot"] != 0, np.nan)).ffill()
-            selected_option_df = selected_option_df[selected_option_df["date"].dt.day_of_week.isin(rebal_week_day)]
+            selected_option_df["weight"] = (
+                weight
+                / selected_option_df["spot"].where(
+                    selected_option_df["spot"] != 0, np.nan
+                )
+            ).ffill()
+            selected_option_df = selected_option_df[
+                selected_option_df["date"].dt.day_of_week.isin(rebal_week_day)
+            ]
             df_list.append(selected_option_df.rename(columns={"date": "entry_date"}))
 
         df = pd.concat(df_list)
         if cost_neutral:
             df = cls._neutralize_cost(df)
 
-        return df[["entry_date", "option_id", "expiration", "leg_name", "weight", "ticker"]]
+        return df[
+            ["entry_date", "option_id", "expiration", "leg_name", "weight", "ticker"]
+        ]
 
     @classmethod
     def _neutralize_cost(cls, df_trades: pd.DataFrame) -> pd.DataFrame:
@@ -103,15 +175,28 @@ class OptionTradeABC(ABC):
         df_trades_cp = df_trades.copy()
         df_trades_cp["premium"] = df_trades_cp["weight"] * df_trades_cp["mid"]
         df_trades_cp["L/S"] = np.where(df_trades_cp["weight"] > 0, "Long", "Short")
-        df_trade_pivot = df_trades_cp.pivot_table(index=["entry_date", "ticker"], columns="L/S", values="premium", aggfunc="sum")
-        df_trade_pivot["missing_premium"] = -df_trade_pivot["Long"] - df_trade_pivot["Short"]
+        df_trade_pivot = df_trades_cp.pivot_table(
+            index=["entry_date", "ticker"],
+            columns="L/S",
+            values="premium",
+            aggfunc="sum",
+        )
+        df_trade_pivot["missing_premium"] = (
+            -df_trade_pivot["Long"] - df_trade_pivot["Short"]
+        )
         df_trade_pivot["scaling_factor"] = np.where(
             df_trade_pivot["missing_premium"] < 0,
-            (df_trade_pivot["Short"] + df_trade_pivot["missing_premium"]) / df_trade_pivot["Short"],
-            (df_trade_pivot["Long"] + df_trade_pivot["missing_premium"]) / df_trade_pivot["Long"],
+            (df_trade_pivot["Short"] + df_trade_pivot["missing_premium"])
+            / df_trade_pivot["Short"],
+            (df_trade_pivot["Long"] + df_trade_pivot["missing_premium"])
+            / df_trade_pivot["Long"],
         )
         df_trades_cp = df_trades_cp.merge(
-            df_trade_pivot.reset_index()[["entry_date", "ticker", "scaling_factor", "missing_premium"]], on=["entry_date", "ticker"], how="left"
+            df_trade_pivot.reset_index()[
+                ["entry_date", "ticker", "scaling_factor", "missing_premium"]
+            ],
+            on=["entry_date", "ticker"],
+            how="left",
         )
         df_trades_cp["weight"] = np.where(
             ((df_trades_cp["missing_premium"] < 0) & (df_trades_cp["weight"] < 0))
@@ -125,17 +210,28 @@ class OptionTradeABC(ABC):
     def _convert_trades_to_timeseries(cls, df_trades: pd.DataFrame) -> pd.DataFrame:
         logging.info("Converting %s df_trades to daily time series", len(df_trades))
         df_trades_cp = df_trades.copy()
-        df_trades_cp["date"] = df_trades_cp.apply(lambda r: pd.date_range(start=r["entry_date"], end=r["expiration"], freq="B"), axis=1)
+        df_trades_cp["date"] = df_trades_cp.apply(
+            lambda r: pd.date_range(
+                start=r["entry_date"], end=r["expiration"], freq="B"
+            ),
+            axis=1,
+        )
         df_trades_cp = df_trades_cp.explode("date").reset_index(drop=True)
-        return df_trades_cp[["date", "option_id", "entry_date", "leg_name", "weight", "ticker"]]
+        return df_trades_cp[
+            ["date", "option_id", "entry_date", "leg_name", "weight", "ticker"]
+        ]
 
     @classmethod
     def _ffill_option_data(cls, df_trades: pd.DataFrame) -> pd.DataFrame:
         logging.info("Forward filling option data for df_trades")
-        return df_trades.sort_values(by=["option_id", "date"]).groupby("option_id", as_index=True, group_keys=False).apply(lambda x: x.ffill())
+        return (
+            df_trades.sort_values(by=["option_id", "date"])
+            .groupby("option_id", as_index=True, group_keys=False)
+            .apply(lambda x: x.ffill())
+        )
 
     @classmethod
-    def _delta_hedge(cls, df_trades: pd.DataFrame) -> pd.DataFrame:
+    def _hedge_trades(cls, df_trades: pd.DataFrame, **kwargs) -> pd.DataFrame:
         """Delta hedge the trade previously generated.
 
         Args:
@@ -153,7 +249,7 @@ class OptionTrade(OptionLoader, OptionTradeABC):
 
 class DeltaHedgedOptionTrade(OptionTrade):
     @classmethod
-    def _delta_hedge(cls, df_trades: pd.DataFrame) -> pd.DataFrame:
+    def _hedge_trades(cls, df_trades: pd.DataFrame, **kwargs) -> pd.DataFrame:
         """Delta hedge the trade previously generated.
 
         Args:
@@ -164,11 +260,11 @@ class DeltaHedgedOptionTrade(OptionTrade):
         """
         logging.info("Applying delta hedging to df_trades")
         df_hedge = (
-            df_trades.groupby(["date", "entry_date"])
+            df_trades.groupby(["date", "ticker", "entry_date"])
             .apply(
                 lambda x: pd.Series(
                     {
-                        "option_id": "SPY",
+                        "option_id": x["ticker"].iloc[0],
                         "expiration": x["expiration"].iloc[0],
                         "leg_name": "DELTA_HEDGING",
                         "weight": -(x["delta"] * x["weight"]).sum(),
@@ -184,4 +280,42 @@ class DeltaHedgedOptionTrade(OptionTrade):
             )
             .reset_index()
         )
-        return pd.concat([df_trades, df_hedge], ignore_index=True).sort_values(by=["date", "option_id"]).reset_index(drop=True)
+        return (
+            pd.concat([df_trades, df_hedge], ignore_index=True)
+            .sort_values(by=["date", "option_id"])
+            .reset_index(drop=True)
+        )
+
+
+class DeltaGammaHedgedOptionTrade(DeltaHedgedOptionTrade):
+    @classmethod
+    def _hedge_trades(
+        cls, df_trades: pd.DataFrame, *, hedging_leg: OptionLegSpec, **kwargs
+    ) -> pd.DataFrame:
+        logging.info("Applying gamma-delta hedging to df_trades")
+        start, end, tickers = (
+            df_trades["date"].min(),
+            df_trades["date"].max(),
+            df_trades["ticker"].unique().tolist(),
+        )
+        df_gamma_hedge = cls._generate_trades(
+            cost_neutral=False,
+            end_date=end,
+            start_date=start,
+            tickers=tickers,
+            legs=[hedging_leg],
+        )
+        df_gamma_hedged_trades = pd.concat(
+            [df_trades, df_gamma_hedge], ignore_index=True
+        )
+        # hedging_leg_name = hedging_leg['leg_name']
+        # df_gamma_hedged_trades.groupby(["date",'trade_in_date'])
+        return super()._hedge_trades(df_gamma_hedged_trades)
+
+    # @classmethod
+    # def _neutralize_initial_gamma(cls, df_trades: pd.DataFrame, *, hedging_leg: OptionLegSpec, **kwargs) -> pd.DataFrame:
+    #     logging.info("Applying gamma-delta hedging to df_trades")
+    #     start, end, tickers = (df_trades["date"].min(), df_trades["date"].max(), df_trades["ticker"].unique().tolist())
+    #     df_gamma_hedge = cls._generate_trades(cost_neutral=False, end_date=end, start_date=start, tickers=tickers, legs=[hedging_leg])
+    #     df_gamma_hedged_trades = pd.concat([df_trades, df_gamma_hedge], ignore_index=True)
+    #     return super()._hedge_trades(df_gamma_hedged_trades)

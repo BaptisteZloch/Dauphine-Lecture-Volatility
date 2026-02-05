@@ -4,7 +4,8 @@ import numpy as np
 import pandas as pd
 from tqdm import tqdm
 
-from investment_lab.pricing.black_scholes import black_scholes_price, vega_black_scholes
+from investment_lab.pricing.black_scholes import (black_scholes_price,
+                                                  vega_black_scholes)
 
 
 def implied_volatility_vectorized(
