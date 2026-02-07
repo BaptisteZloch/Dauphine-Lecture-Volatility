@@ -5,28 +5,14 @@ import numpy as np
 import pandas as pd
 from tqdm import tqdm
 
-from investment_lab.util import check_is_true
+from investment_lab.data.option_db import OptionLoader
+from investment_lab.data.rates_db import USRatesLoader
+from investment_lab.rates import compute_forward
+from investment_lab.util import check_is_true, ffill_options_data
 
 
 class StrategyBacktester:
-    _BACKTEST_COLS = [
-        "date",
-        "option_id",
-        "weight",
-        "mid",
-        "ask",
-        "bid",
-        "entry_date",
-        "expiration",
-        "spot",
-        "implied_volatility",
-        "risk_free_rate",
-        "delta",
-        "theta",
-        "vega",
-        "gamma",
-        "rho",
-    ]
+    _BACKTEST_COLS = ["date", "option_id", "entry_date", "leg_name", "weight", "ticker"]
     _PNL_COLS = [
         "pnl",
         "delta_pnl",
@@ -49,7 +35,8 @@ class StrategyBacktester:
             len(df_positions) > 2,
             "Positions data is empty or too small to run backtest.",
         )
-        self._df_positions = df_positions
+
+        self._df_positions = df_positions[self._BACKTEST_COLS]
         self._is_backtested = False
         self._df_pnl = pd.DataFrame()
         self._df_nav = pd.DataFrame()
@@ -57,18 +44,20 @@ class StrategyBacktester:
         self._df_drifted_positions = pd.DataFrame()
 
     def compute_backtest(self, tcost_args: Optional[dict[str, Any]] = None) -> Self:
-        tcost_args = tcost_args or {}
-        df_positions = self.apply_tcost(
-            self._df_positions[self._BACKTEST_COLS], **tcost_args
+        df_positions_raw = self._preprocess_positions(
+            self._df_positions[self._BACKTEST_COLS]
         )
 
-        df_positions = df_positions.sort_values(["option_id", "date"]).copy()
+        tcost_args = tcost_args or {}
+        df_positions = self.apply_tcost(df_positions_raw, **tcost_args).sort_values(
+            ["option_id", "date"]
+        )
 
         logging.info("Computing period to period difference, for P&L calculations.")
         df_positions["dv"] = df_positions.groupby(["option_id"])["mid"].diff().fillna(0)
         df_positions["dr"] = (
-            df_positions.groupby(["option_id"])["risk_free_rate"].diff().fillna(0)
-        )
+            np.nan
+        )  # df_positions.groupby(["option_id"])["risk_free_rate"].diff().fillna(0)
         df_positions["dsigma"] = (
             df_positions.groupby(["option_id"])["implied_volatility"].diff().fillna(0)
         )
@@ -92,7 +81,7 @@ class StrategyBacktester:
         df_positions["prev_rho"] = (
             df_positions.groupby("option_id")["rho"].shift(1).fillna(method="bfill")
         )
-        df_positions["obs_date"] = df_positions["date"].apply(
+        df_positions["obs_date"] = df_positions["entry_date"].apply(
             lambda x: x - pd.Timedelta(days=1)
         )
         df_pnl = pd.DataFrame(
@@ -153,6 +142,7 @@ class StrategyBacktester:
 
             df_pnl = pd.concat([df_pnl, df_day.groupby("date")[self._PNL_COLS].sum()])
             if d not in df_nav.index:
+                # Find latest available.
                 latest_nav = df_nav[df_nav.index == df_nav.index.max()].iloc[0]
             else:
                 latest_nav = df_nav.loc[d]
@@ -166,6 +156,47 @@ class StrategyBacktester:
         self._df_metainfo = df_pnl[["leverage", "cashflow"]].copy()
         self._df_drifted_positions = pd.concat(drifted_positions).reset_index(drop=True)
         return self
+
+    @staticmethod
+    def _preprocess_positions(df_positions: pd.DataFrame):
+        """Extend the position dataframe with option info + date shifting"""
+        logging.info("Shifting +1 business to ensure valid trading result.")
+        df_positions_cp = df_positions.copy()
+        df_positions_cp["date"] = df_positions_cp["date"].apply(
+            lambda x: x + pd.offsets.BDay(1)
+        )
+        start, end = df_positions_cp["date"].min(), df_positions_cp["date"].max()
+        tickers = df_positions_cp["ticker"].unique().tolist()
+        df_options = OptionLoader.load_data(
+            start, end, process_kwargs={"ticker": tickers}
+        )
+        df_spot = (
+            df_options.groupby(["date", "ticker"])
+            .apply(
+                lambda x: pd.Series(
+                    {
+                        "option_id": x["ticker"].iloc[0],
+                        "spot": x["spot"].iloc[0],
+                        "bid": x["spot"].iloc[0],
+                        "ask": x["spot"].iloc[0],
+                        "mid": x["spot"].iloc[0],
+                        "delta": 1,
+                    }
+                )
+            )
+            .reset_index()
+        )
+        df_options_spot = pd.concat([df_options, df_spot])
+        df_positions_extended = df_positions_cp.merge(
+            df_options_spot, how="left", on=["ticker", "option_id", "date"]
+        )
+        # To ensure not trade after expiration
+        df_positions_extended = df_positions_extended[
+            (df_positions_extended["date"] <= df_positions_extended["expiration"])
+            | df_positions_extended["expiration"].isna()
+        ]
+        df_positions_extended = ffill_options_data(df_positions_extended)
+        return df_positions_extended
 
     @classmethod
     def apply_tcost(cls, df_positions: pd.DataFrame, **kwargs) -> pd.DataFrame:

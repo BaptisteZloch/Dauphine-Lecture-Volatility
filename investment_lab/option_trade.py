@@ -12,7 +12,7 @@ from investment_lab.data.rates_db import USRatesLoader
 from investment_lab.dataclass import OptionLegSpec
 from investment_lab.option_selection import select_options
 from investment_lab.rates import compute_forward
-from investment_lab.util import check_is_true
+from investment_lab.util import check_is_true, ffill_options_data
 
 
 class OptionTradeABC(ABC):
@@ -38,11 +38,30 @@ class OptionTradeABC(ABC):
         cost_neutral: bool = False,
         hedging_args: Optional[dict] = None,
     ) -> pd.DataFrame:
+        """Generate the trade dataframe containing the information for each trade with daily positions.
+
+        Args:
+            start_date (datetime): Start date
+            end_date (datetime): Start date
+            tickers (list[str] | str): Tickers of the underliers
+            legs (list[OptionLegSpec]): List of leg definition
+            cost_neutral (bool, optional): WHether to neutralize the cost between legs. Defaults to False.
+            hedging_args (Optional[dict], optional): dictionnary if argument to be passed to the function `_hedge_trades`.
+            Defaults to None.
+
+        Returns:
+            pd.DataFrame: Dataframe with trade information:
+            ['date', 'option_id', 'entry_date', 'leg_name', 'weight', 'ticker']
+            The result assume the observation date is the date. To correctly represent position one should add + 1 business day
+            to the date column before adding the trade information.
+        """
         df_trades_daily = cls._generate_trades(
             start_date, end_date, tickers=tickers, legs=legs, cost_neutral=cost_neutral
         )
         hedging_args = hedging_args or {}
-        return cls._hedge_trades(df_trades_daily, **hedging_args)
+        return cls._hedge_trades(df_trades_daily, **hedging_args)[
+            ["date", "option_id", "entry_date", "leg_name", "weight", "ticker"]
+        ]
 
     @classmethod
     def _generate_trades(
@@ -56,11 +75,11 @@ class OptionTradeABC(ABC):
         """Generate trade for main option selection, excluding delta hedging or gamma hedging/overlay.
 
         Args:
-            start_date: _description_
-            end_date: _description_
-            tickers: _description_
-            legs: _description_
-            cost_neutral: _description_. Defaults to False.
+            start_date (datetime): Start date
+            end_date (datetime): Start date
+            tickers (list[str] | str): Tickers of the underliers
+            legs (list[OptionLegSpec]): List of leg definition
+            cost_neutral (bool, optional): WHether to neutralize the cost between legs. Defaults to False.
 
         Returns:
             pd.DataFrame: _description_
@@ -82,7 +101,7 @@ class OptionTradeABC(ABC):
         df_trades_daily = df_trades_daily.drop_duplicates(
             subset=["date", "leg_name", "option_id"]
         )
-        df_trades_daily = cls._ffill_option_data(df_trades_daily)
+        df_trades_daily = ffill_options_data(df_trades_daily)
         if "risk_free_rate" not in df_trades_daily.columns:
             start, end = df_trades_daily["date"].min(), df_trades_daily["date"].max()
             df_rates = USRatesLoader.load_data(start, end)
@@ -222,15 +241,6 @@ class OptionTradeABC(ABC):
         ]
 
     @classmethod
-    def _ffill_option_data(cls, df_trades: pd.DataFrame) -> pd.DataFrame:
-        logging.info("Forward filling option data for df_trades")
-        return (
-            df_trades.sort_values(by=["option_id", "date"])
-            .groupby("option_id", as_index=True, group_keys=False)
-            .apply(lambda x: x.ffill())
-        )
-
-    @classmethod
     def _hedge_trades(cls, df_trades: pd.DataFrame, **kwargs) -> pd.DataFrame:
         """Delta hedge the trade previously generated.
 
@@ -265,7 +275,7 @@ class DeltaHedgedOptionTrade(OptionTrade):
                 lambda x: pd.Series(
                     {
                         "option_id": x["ticker"].iloc[0],
-                        "expiration": x["expiration"].iloc[0],
+                        "expiration": x["date"].iloc[0] + pd.offsets.BusinessDay(n=1),
                         "leg_name": "DELTA_HEDGING",
                         "weight": -(x["delta"] * x["weight"]).sum(),
                         "spot": x["spot"].iloc[0],
@@ -273,8 +283,6 @@ class DeltaHedgedOptionTrade(OptionTrade):
                         "ask": x["spot"].iloc[0],
                         "mid": x["spot"].iloc[0],
                         "delta": 1,
-                        "risk_free_rate": x["risk_free_rate"].iloc[0],
-                        "forward": x["forward"].iloc[0],
                     }
                 )
             )
@@ -308,14 +316,4 @@ class DeltaGammaHedgedOptionTrade(DeltaHedgedOptionTrade):
         df_gamma_hedged_trades = pd.concat(
             [df_trades, df_gamma_hedge], ignore_index=True
         )
-        # hedging_leg_name = hedging_leg['leg_name']
-        # df_gamma_hedged_trades.groupby(["date",'trade_in_date'])
         return super()._hedge_trades(df_gamma_hedged_trades)
-
-    # @classmethod
-    # def _neutralize_initial_gamma(cls, df_trades: pd.DataFrame, *, hedging_leg: OptionLegSpec, **kwargs) -> pd.DataFrame:
-    #     logging.info("Applying gamma-delta hedging to df_trades")
-    #     start, end, tickers = (df_trades["date"].min(), df_trades["date"].max(), df_trades["ticker"].unique().tolist())
-    #     df_gamma_hedge = cls._generate_trades(cost_neutral=False, end_date=end, start_date=start, tickers=tickers, legs=[hedging_leg])
-    #     df_gamma_hedged_trades = pd.concat([df_trades, df_gamma_hedge], ignore_index=True)
-    #     return super()._hedge_trades(df_gamma_hedged_trades)
